@@ -237,7 +237,7 @@ class RequestManager {
         return new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
                 resolve({ success: false, error: "REQUEST_TIMEOUT" });
-            }, this.timeoutMs);
+            }, 30000); // 30 seconds
 
             try {
                 requestFn(result => {
