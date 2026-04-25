@@ -782,7 +782,10 @@ class Palettes {
     }
 
     getSearchPos() {
-        return [this.cellSize, this.top + this.cellSize * 1.75];
+        return {
+            x: this.cellSize * this.activity.turtleBlocksScale * 1.5,
+            y: (this.top + this.cellSize * 0.95) * this.activity.turtleBlocksScale
+        };
     }
 
     getPluginMacroExpansion(blkname, x, y) {
@@ -1953,20 +1956,13 @@ class Palette {
                 const statusVariables = [
                     "modelength",
                     "deltapitch2",
-                    "deltapitch",
-                    "currentkey",
+                    "intervalnumber",
+                    "currentinterval",
                     "currentmode",
-                    "x",
-                    "y",
-                    "grey",
-                    "shade",
-                    "pensize",
-                    "color",
-                    "elapsednotes",
-                    "beatfactor",
-                    "notevalue",
+                    "key",
                     "beatvalue",
                     "measurevalue",
+                    "elapsednotes",
                     "bpmfactor",
                     "currentpitch"
                 ];
@@ -1975,16 +1971,14 @@ class Palette {
                 const foundTypes = new Set();
                 for (let blk = 0; blk < this.activity.blocks.blockList.length; blk++) {
                     const block = this.activity.blocks.blockList[blk];
-                    if (!block.trash) {
-                        for (const blockType of statusVariables) {
-                            if (block.name === blockType && !foundTypes.has(blockType)) {
-                                if (this.activity.logo.statusFields) {
-                                    this.activity.logo.statusFields.push([blk, blockType]);
-                                }
-                                foundVariables.push([blk, blockType]);
-                                foundTypes.add(blockType);
-                                break;
+                    if (!block.trash && statusVariables.includes(block.name)) {
+                        const blockType = block.name;
+                        if (!foundTypes.has(blockType)) {
+                            if (this.activity.logo.statusFields) {
+                                this.activity.logo.statusFields.push([blk, blockType]);
                             }
+                            foundVariables.push([blk, blockType]);
+                            foundTypes.add(blockType);
                         }
                     }
                 }
@@ -2008,22 +2002,17 @@ class Palette {
                     }
                 }
 
-                // Create base status block structure
-                const statusBlocks = [
-                    [0, "status", saveX, saveY, [null, 1, 2]],
-                    [
-                        1,
-                        "hidden",
-                        0,
-                        0,
-                        [0, foundVariables.length > 0 || boxBlocks.length > 0 ? 3 : null]
-                    ],
-                    [2, "hiddennoflow", 0, 0, [0, null]]
-                ];
+                // Create base status block structure by calling the protoblock's macro function
+                const statusBlocks = protoblk.macroFunc(saveX, saveY);
 
                 // Add variables and boxes to status block
-                let lastBlockIndex = 2;
-                let lastConnection = 1; // Start from the hidden block
+                let lastBlockIndex = statusBlocks.length - 1;
+                let lastConnection = 8; // Index of the last 'print' block in the base macro
+
+                // Update the connection of the last monitoring block if we have variables to append
+                if (foundVariables.length > 0 || boxBlocks.length > 0) {
+                    statusBlocks[lastConnection][4][2] = lastBlockIndex + 1;
+                }
 
                 // Add variables first
                 for (let i = 0; i < foundVariables.length; i++) {
@@ -2032,28 +2021,27 @@ class Palette {
                     const isLastVar = i === foundVariables.length - 1;
                     const hasBoxes = boxBlocks.length > 0;
 
+                    const varBlockId = ++lastBlockIndex;
+                    const valBlockId = ++lastBlockIndex;
+
                     statusBlocks.push([
-                        lastBlockIndex + 1,
+                        varBlockId,
                         "print",
                         0,
                         0,
-                        [
-                            lastConnection,
-                            lastBlockIndex + 2,
-                            !isLastVar || hasBoxes ? lastBlockIndex + 3 : null
-                        ]
+                        [lastConnection, valBlockId, !isLastVar || hasBoxes ? valBlockId + 1 : null]
                     ]);
-                    lastConnection = lastBlockIndex + 1;
 
                     // Add variable value block
                     statusBlocks.push([
-                        lastBlockIndex + 2,
+                        valBlockId,
                         [blockType, { value: block.value }],
                         0,
                         0,
-                        [lastBlockIndex + 1]
+                        [varBlockId]
                     ]);
-                    lastBlockIndex += 2;
+
+                    lastConnection = varBlockId;
                 }
 
                 // Then add box blocks
@@ -2061,28 +2049,31 @@ class Palette {
                     const boxBlockId = boxBlocks[i];
                     const boxBlock = this.activity.blocks.blockList[boxBlockId];
 
+                    const varBlockId = ++lastBlockIndex;
+                    const valBlockId = ++lastBlockIndex;
+
                     statusBlocks.push([
-                        lastBlockIndex + 1,
+                        varBlockId,
                         "print",
                         0,
                         0,
                         [
                             lastConnection,
-                            lastBlockIndex + 2,
-                            i < boxBlocks.length - 1 ? lastBlockIndex + 3 : null
+                            valBlockId,
+                            i < boxBlocks.length - 1 ? valBlockId + 1 : null
                         ]
                     ]);
-                    lastConnection = lastBlockIndex + 1;
 
                     // Add box value block
                     statusBlocks.push([
-                        lastBlockIndex + 2,
+                        valBlockId,
                         ["namedbox", { value: boxBlock.overrideName }],
                         0,
                         0,
-                        [lastBlockIndex + 1]
+                        [varBlockId]
                     ]);
-                    lastBlockIndex += 2;
+
+                    lastConnection = varBlockId;
                 }
 
                 macroExpansion = statusBlocks;

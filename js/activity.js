@@ -1535,6 +1535,7 @@ class Activity {
             const title = document.createElement("h2");
             title.textContent = _("Import MIDI");
             title.classList.add("modal-title");
+            title.style.color = platformColor.headingColor;
             modal.appendChild(title);
 
             const container = document.createElement("div");
@@ -1601,6 +1602,7 @@ class Activity {
             const title = document.createElement("h2");
             title.textContent = _("Clear Workspace");
             title.classList.add("modal-title");
+            title.style.color = platformColor.headingColor;
 
             modal.appendChild(title);
             const message = document.createElement("p");
@@ -3422,12 +3424,13 @@ class Activity {
                     obj[0].style.visibility = "visible";
                 }
 
-                this.searchWidget.value = null;
-                this.searchWidget.style.visibility = "visible";
-                this.searchWidget.style.left =
-                    this.palettes.getSearchPos()[0] * this.turtleBlocksScale * 1.5 + "px";
-                this.searchWidget.style.top =
-                    this.palettes.getSearchPos()[1] * this.turtleBlocksScale * 0.95 + "px";
+                if (this.searchWidget) {
+                    this.searchWidget.value = null;
+                    this.searchWidget.style.visibility = "visible";
+                    const searchPos = this.palettes.getSearchPos();
+                    this.searchWidget.style.left = searchPos.x + "px";
+                    this.searchWidget.style.top = searchPos.y + "px";
+                }
 
                 this.searchBlockPosition = [100, 100];
                 this.prepSearchWidget();
@@ -4385,7 +4388,20 @@ class Activity {
         // hidden the resize guards above intentionally skipped any
         // layout work, so we need to catch up now.
         this._handleVisibilityChange = () => {
-            if (!document.hidden && this.stage) {
+            if (document.hidden) {
+                if (typeof this.__saveLocally === "function") {
+                    this.__saveLocally();
+                }
+                if (
+                    typeof this.saveLocally === "function" &&
+                    this.saveLocally !== this.__saveLocally
+                ) {
+                    this.saveLocally();
+                }
+                return;
+            }
+
+            if (this.stage) {
                 // Use a short delay to let the browser finish
                 // exposing the tab and reporting real dimensions.
                 setTimeout(() => {
@@ -5166,6 +5182,12 @@ class Activity {
             // Try restarting where we were when we hit save.
             if (that.planet) {
                 that.sessionData = await that.planet.openCurrentProject();
+                if (!that.sessionData) {
+                    const currentProject = that.storage.currentProject;
+                    if (currentProject !== undefined) {
+                        that.sessionData = that.storage["SESSION" + currentProject];
+                    }
+                }
             } else {
                 const currentProject = that.storage.currentProject;
                 that.sessionData = that.storage["SESSION" + currentProject];
@@ -6706,10 +6728,15 @@ class Activity {
                 } else {
                     switch (myBlock.name) {
                         case "start":
-                        case "drum":
+                        case "drum": {
                             // Find the turtle associated with this block.
-                            // eslint-disable-next-line no-case-declarations
-                            const turtle = this.turtles.getTurtle(myBlock.value);
+                            const turtleIdx = parseInt(myBlock.value);
+                            const turtle =
+                                !isNaN(turtleIdx) &&
+                                turtleIdx >= 0 &&
+                                turtleIdx < this.turtles.getTurtleCount()
+                                    ? this.turtles.getTurtle(turtleIdx)
+                                    : null;
                             if (turtle === null || turtle === undefined) {
                                 args = {
                                     id: this.turtles.getTurtleCount(),
@@ -6737,6 +6764,7 @@ class Activity {
                                 };
                             }
                             break;
+                        }
                         case "temperament1":
                             if (this.blocks.customTemperamentDefined) {
                                 // If a define temperament block is
@@ -8138,6 +8166,17 @@ class Activity {
             this.addEventListener(document, "mousemove", this.handleMouseMove);
             this.addEventListener(document, "click", this.handleDocumentClick);
             this.addEventListener(window, "beforeunload", () => {
+                // Save synchronously to SESSION* keys so manual reload/F5
+                // still has recoverable data even if async saves are cut short.
+                if (typeof this.__saveLocally === "function") {
+                    this.__saveLocally();
+                }
+                if (
+                    typeof this.saveLocally === "function" &&
+                    this.saveLocally !== this.__saveLocally
+                ) {
+                    this.saveLocally();
+                }
                 this._stopRenderLoop();
                 if (this._autoSaveInterval !== null) {
                     clearInterval(this._autoSaveInterval);
