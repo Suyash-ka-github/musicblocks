@@ -112,7 +112,6 @@ class LocalPlanet {
     openProject(id) {
         const Planet = this.Planet;
         Planet.ProjectStorage.setCurrentProjectID(id);
-        console.log(this.ProjectTable);
         Planet.loadProjectFromData(this.ProjectTable[id].ProjectData);
     }
 
