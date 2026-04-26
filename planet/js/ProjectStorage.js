@@ -57,14 +57,7 @@ class ProjectStorage {
         return prefix + suffix;
     }
 
-    async saveLocally(data, image) {
-        console.log(
-            "Saving project locally with data:",
-            data,
-            "name:",
-            this.getCurrentProjectName()
-        );
-        console.log(this.projectTable);
+    async saveLocally(data, image) {  
         // Ensure data is loaded before saving
         await this.dataLoaded;
 
@@ -118,9 +111,6 @@ class ProjectStorage {
     }
 
     async initialiseNewProject(name, data, image) {
-        console.log(this);
-        console.log("Initialising new project:", name);
-        console.log("Current data before initialization:", data);
         name = name ?? this.defaultProjectName;
         data = data ?? null;
         image = image ?? null;
