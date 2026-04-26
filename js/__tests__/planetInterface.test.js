@@ -29,6 +29,7 @@ const mockActivity = {
     prepSearchWidget: jest.fn(),
     sendAllToTrash: jest.fn(),
     refreshCanvas: jest.fn(),
+    justLoadStart: jest.fn(),
     _loadStart: jest.fn(),
     doLoadAnimation: jest.fn(),
     textMsg: jest.fn(),
@@ -125,14 +126,33 @@ describe("PlanetInterface", () => {
         expect(planetInterface.showMusicBlocks).toHaveBeenCalled();
     });
 
-    test("newProject calls closePlanet, initialiseNewProject, _loadStart, and saveLocally", () => {
+    test("newProject calls closePlanet, initialiseNewProject, blank project loader, and saveLocally", () => {
         jest.spyOn(planetInterface, "closePlanet").mockImplementation(() => {});
         jest.spyOn(planetInterface, "initialiseNewProject").mockImplementation(() => {});
         jest.spyOn(planetInterface, "saveLocally").mockImplementation(() => {});
+        mockActivity.justLoadStart.mockClear();
+        mockActivity.blocks.loadNewBlocks.mockClear();
         planetInterface.newProject();
         expect(planetInterface.closePlanet).toHaveBeenCalled();
         expect(planetInterface.initialiseNewProject).toHaveBeenCalled();
-        expect(mockActivity._loadStart).toHaveBeenCalled();
+        expect(mockActivity.justLoadStart).toHaveBeenCalled();
+        expect(mockActivity.blocks.loadNewBlocks).not.toHaveBeenCalled();
+        expect(planetInterface.saveLocally).toHaveBeenCalled();
+    });
+
+    test("newProject loads a minimal single-start project for deleted-project fallback", () => {
+        jest.spyOn(planetInterface, "closePlanet").mockImplementation(() => {});
+        jest.spyOn(planetInterface, "initialiseNewProject").mockImplementation(() => {});
+        jest.spyOn(planetInterface, "saveLocally").mockImplementation(() => {});
+        mockActivity.justLoadStart.mockClear();
+        mockActivity.blocks.loadNewBlocks.mockClear();
+
+        planetInterface.newProject({ minimalStart: true });
+
+        expect(mockActivity.justLoadStart).not.toHaveBeenCalled();
+        expect(mockActivity.blocks.loadNewBlocks).toHaveBeenCalledWith([
+            [0, "start", screen.width / 2 + 28, 100, [null, null, null]]
+        ]);
         expect(planetInterface.saveLocally).toHaveBeenCalled();
     });
     test("onConverterLoad sets window.Converter", () => {
@@ -170,6 +190,19 @@ describe("PlanetInterface", () => {
         expect(mockActivity.textMsg).toHaveBeenCalledWith("foo");
         expect(mockActivity.loading).toBe(false);
         expect(mockActivity.blocks.loadNewBlocks).toHaveBeenCalledWith({ whatever: 1 });
+        expect(document.body.style.cursor).toBe("default");
+    });
+
+    test("loadProjectFromData: blank project data loads the blank project starter", () => {
+        planetInterface.iframe = { style: { display: "block" } };
+        mockActivity.blocks.loadNewBlocks.mockClear();
+        mockActivity.justLoadStart.mockClear();
+
+        planetInterface.getCurrentProjectName = jest.fn(() => "foo");
+        planetInterface.loadProjectFromData("[]");
+
+        expect(mockActivity.justLoadStart).toHaveBeenCalled();
+        expect(mockActivity.blocks.loadNewBlocks).not.toHaveBeenCalled();
         expect(document.body.style.cursor).toBe("default");
     });
 

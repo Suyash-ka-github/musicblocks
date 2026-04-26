@@ -57,7 +57,7 @@ describe("Planet", () => {
 
         await planet.closeButton();
 
-        expect(planet.loadNewProject).toHaveBeenCalled();
+        expect(planet.loadNewProject).toHaveBeenCalledWith({ minimalStart: true });
         expect(planet.loadProjectFromData).not.toHaveBeenCalled();
         expect(planet.planetClose).not.toHaveBeenCalled();
     });

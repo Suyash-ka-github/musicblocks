@@ -226,10 +226,13 @@ class Planet {
     async closeButton() {
         const currentProjectID = this.ProjectStorage.getCurrentProjectID();
         const currentProject = this.ProjectStorage.data.Projects[currentProjectID];
+        const shouldLoadMinimalProject = currentProject === undefined;
 
         if (currentProjectID !== this.oldCurrentProjectID || currentProject === undefined) {
             const data = await this.ProjectStorage.getCurrentProjectData();
-            !data ? this.loadNewProject() : this.loadProjectFromData(data);
+            !data
+                ? this.loadNewProject({ minimalStart: shouldLoadMinimalProject })
+                : this.loadProjectFromData(data);
         } else this.planetClose();
     }
 

@@ -32,6 +32,22 @@ class PlanetInterface {
         this.mainCanvas = null;
         this.activity = activity;
 
+        this.loadBlankProject = () => {
+            if (typeof this.activity.justLoadStart === "function") {
+                this.activity.justLoadStart();
+            } else if (typeof this.activity._loadStart === "function") {
+                this.activity._loadStart();
+            }
+        };
+
+        this.getMinimalProjectData = () => {
+            return [[0, "start", screen.width / 2 + 28, 100, [null, null, null]]];
+        };
+
+        this.loadMinimalProject = () => {
+            this.activity.blocks.loadNewBlocks(this.getMinimalProjectData());
+        };
+
         /**
          * Hides music blocks and related elements.
          */
@@ -151,7 +167,11 @@ class PlanetInterface {
 
             try {
                 const obj = JSON.parse(data);
-                this.activity.blocks.loadNewBlocks(obj);
+                if (!merge && Array.isArray(obj) && obj.length === 0) {
+                    this.loadBlankProject();
+                } else {
+                    this.activity.blocks.loadNewBlocks(obj);
+                }
             } catch (e) {
                 this.errorMsg(e);
             }
@@ -175,10 +195,17 @@ class PlanetInterface {
          * Function to create a new project.
          * Closes the current project if open, initializes a new project, loads the start page, and saves the project locally.
          */
-        this.newProject = () => {
+        this.newProject = options => {
+            const useMinimalProject =
+                options !== undefined && options !== null && options.minimalStart === true;
+
             this.closePlanet();
             this.initialiseNewProject();
-            this.activity._loadStart();
+            if (useMinimalProject) {
+                this.loadMinimalProject();
+            } else {
+                this.loadBlankProject();
+            }
             this.saveLocally();
         };
 
