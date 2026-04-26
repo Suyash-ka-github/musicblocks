@@ -406,6 +406,8 @@ describe("ProjectStorage", () => {
                 ReportedProjects: {},
                 DefaultCreatorName: "anonymous"
             };
+            storage.fireDataLoaded();
+            await Promise.resolve();
         });
 
         it("should update project data and image", async () => {
@@ -422,9 +424,11 @@ describe("ProjectStorage", () => {
 
         it("should create a new project if CurrentProject is undefined", async () => {
             storage.data.CurrentProject = undefined;
-            const initSpy = jest.spyOn(storage, "initialiseNewProject").mockResolvedValue();
             await storage.saveLocally("data", "img");
-            expect(initSpy).toHaveBeenCalled();
+            const id = storage.getCurrentProjectID();
+            expect(id).toBeDefined();
+            expect(storage.data.Projects[id].ProjectData).toBe("data");
+            expect(storage.data.Projects[id].ProjectImage).toBe("img");
         });
     });
 
@@ -464,6 +468,53 @@ describe("ProjectStorage", () => {
             const saveSpy = jest.spyOn(storage, "save").mockResolvedValue();
             await storage.deleteProject("proj1");
             expect(storage.data.Projects["proj1"]).toBeUndefined();
+            expect(saveSpy).toHaveBeenCalled();
+        });
+
+        it("deleteProject should switch to the most recently modified remaining project", async () => {
+            const saveSpy = jest.spyOn(storage, "save").mockResolvedValue();
+            storage.data = {
+                CurrentProject: "proj1",
+                Projects: {
+                    proj1: {
+                        ProjectName: "Song A",
+                        ProjectData: "block-data",
+                        ProjectImage: null,
+                        PublishedData: null,
+                        DateLastModified: 1000
+                    },
+                    proj2: {
+                        ProjectName: "Song B",
+                        ProjectData: "block-data-b",
+                        ProjectImage: null,
+                        PublishedData: null,
+                        DateLastModified: 3000
+                    },
+                    proj3: {
+                        ProjectName: "Song C",
+                        ProjectData: "block-data-c",
+                        ProjectImage: null,
+                        PublishedData: null,
+                        DateLastModified: 2000
+                    }
+                },
+                LikedProjects: {},
+                ReportedProjects: {},
+                DefaultCreatorName: "anonymous"
+            };
+
+            await storage.deleteProject("proj1");
+
+            expect(storage.getCurrentProjectID()).toBe("proj2");
+            expect(saveSpy).toHaveBeenCalled();
+        });
+
+        it("deleteProject should clear CurrentProject when the last project is deleted", async () => {
+            const saveSpy = jest.spyOn(storage, "save").mockResolvedValue();
+
+            await storage.deleteProject("proj1");
+
+            expect(storage.getCurrentProjectID()).toBeUndefined();
             expect(saveSpy).toHaveBeenCalled();
         });
 

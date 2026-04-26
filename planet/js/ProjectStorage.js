@@ -58,10 +58,22 @@ class ProjectStorage {
     }
 
     async saveLocally(data, image) {
-        if (this.data.CurrentProject === undefined) this.initialiseNewProject();
+        console.log(
+            "Saving project locally with data:",
+            data,
+            "name:",
+            this.getCurrentProjectName()
+        );
+        console.log(this.projectTable);
+        // Ensure data is loaded before saving
+        await this.dataLoaded;
 
-        const c = this.data.CurrentProject;
-        if (this.data.Projects[c] === undefined) {
+        let c = this.data.CurrentProject;
+
+        // If no current project or project doesn't exist, create a new one
+        if (c === undefined || this.data.Projects[c] === undefined) {
+            c = this.generateID();
+            this.data.CurrentProject = c;
             this.data.Projects[c] = {};
             this.data.Projects[c].ProjectName = this.defaultProjectName;
             this.data.Projects[c].ProjectData = null;
@@ -106,6 +118,9 @@ class ProjectStorage {
     }
 
     async initialiseNewProject(name, data, image) {
+        console.log(this);
+        console.log("Initialising new project:", name);
+        console.log("Current data before initialization:", data);
         name = name ?? this.defaultProjectName;
         data = data ?? null;
         image = image ?? null;
@@ -131,8 +146,34 @@ class ProjectStorage {
         await this.save();
     }
 
+    getLatestProjectID() {
+        const projectIDs = Object.keys(this.data.Projects);
+
+        if (projectIDs.length === 0) {
+            return null;
+        }
+
+        projectIDs.sort((a, b) => {
+            return this.data.Projects[b].DateLastModified - this.data.Projects[a].DateLastModified;
+        });
+
+        return projectIDs[0];
+    }
+
     async deleteProject(id) {
+        const deletedCurrentProject = this.data.CurrentProject === id;
         delete this.data.Projects[id];
+
+        if (deletedCurrentProject) {
+            const nextProjectID = this.getLatestProjectID();
+
+            if (nextProjectID === null) {
+                delete this.data.CurrentProject;
+            } else {
+                this.data.CurrentProject = nextProjectID;
+            }
+        }
+
         await this.save();
         this.Planet.LocalPlanet.updateProjects();
     }

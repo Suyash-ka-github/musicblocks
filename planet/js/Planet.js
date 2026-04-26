@@ -224,7 +224,10 @@ class Planet {
     }
 
     async closeButton() {
-        if (this.ProjectStorage.getCurrentProjectID() !== this.oldCurrentProjectID) {
+        const currentProjectID = this.ProjectStorage.getCurrentProjectID();
+        const currentProject = this.ProjectStorage.data.Projects[currentProjectID];
+
+        if (currentProjectID !== this.oldCurrentProjectID || currentProject === undefined) {
             const data = await this.ProjectStorage.getCurrentProjectData();
             !data ? this.loadNewProject() : this.loadProjectFromData(data);
         } else this.planetClose();
@@ -258,3 +261,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 });
+
+if (typeof module !== "undefined" && module.exports) {
+    module.exports = Planet;
+}
