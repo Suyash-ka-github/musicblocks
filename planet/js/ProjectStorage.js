@@ -57,7 +57,7 @@ class ProjectStorage {
         return prefix + suffix;
     }
 
-    async saveLocally(data, image) {  
+    async saveLocally(data, image) {
         // Ensure data is loaded before saving
         await this.dataLoaded;
 
