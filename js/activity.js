@@ -5930,19 +5930,17 @@ class Activity {
         /*
          * Sets up a new "clean" MB i.e. new project instance
          */
-        const _afterDelete = that => {
+        const _afterDelete = (that, name) => {
             if (that.turtles.running()) {
                 that._doHardStopButton();
             }
 
-            // Use the planet New Project mechanism if it is available,
-            // but only if the current project has a name.
-            if (
-                that.planet !== undefined &&
-                that.planet.getCurrentProjectName() !== _("My Project")
-            ) {
-                that.planet.saveLocally();
-                that.planet.initialiseNewProject();
+            if (that.planet !== undefined) {
+                // Save current project if it has a name other than "My Project"
+                if (that.planet.getCurrentProjectName() !== _("My Project")) {
+                    that.planet.saveLocally();
+                }
+                that.planet.initialiseNewProject(name);
                 loadStart(that);
                 that.planet.saveLocally();
             } else {

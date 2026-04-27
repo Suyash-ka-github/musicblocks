@@ -356,19 +356,22 @@ describe("Toolbar Class", () => {
         const appendCalls = elements["newdropdown"].appendChild.mock.calls;
         const titleElement = appendCalls[0][0];
         const messageElement = appendCalls[1][0];
-        const buttonListItem = appendCalls[2][0];
+        const nameInputElement = appendCalls[2][0];
+        const buttonListItem = appendCalls[3][0];
         const confirmButton = buttonListItem.firstChild;
 
         expect(titleElement.textContent).toBe("New project");
-        expect(messageElement.textContent).toBe("Are you sure you want to create a new project?");
+        expect(messageElement.textContent).toBe("Enter project name:");
         expect(messageElement.id).toBe("confirmation-message");
+        expect(nameInputElement.id).toBe("new-project-name");
+        expect(nameInputElement.placeholder).toBe("Project Name");
         expect(confirmButton.textContent).toBe("Confirm");
         expect(confirmButton.id).toBe("new-project");
 
         confirmButton.onclick();
 
         expect(elements["modal-container"].style.display).toBe("none");
-        expect(mockOnClick).toHaveBeenCalledWith(mockActivity);
+        expect(mockOnClick).toHaveBeenCalledWith(mockActivity, "My Project");
     });
 
     test("renderLoadIcon sets onclick and updates tooltip", () => {

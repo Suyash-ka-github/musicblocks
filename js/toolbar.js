@@ -572,8 +572,23 @@ class Toolbar {
 
         const confirmationMessage = document.createElement("div");
         confirmationMessage.id = "confirmation-message";
-        confirmationMessage.textContent = _("Are you sure you want to create a new project?");
+        confirmationMessage.textContent = _("Enter project name:");
         newDropdown.appendChild(confirmationMessage);
+
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.placeholder = _("Project Name");
+        nameInput.id = "new-project-name";
+        nameInput.classList.add("project-name-input");
+        newDropdown.appendChild(nameInput);
+
+        // Prevent dropdown from closing when clicking inside the input
+        nameInput.addEventListener("click", e => {
+            e.stopPropagation();
+        });
+        nameInput.addEventListener("mousedown", e => {
+            e.stopPropagation();
+        });
 
         const buttonRowLi = document.createElement("li");
         buttonRowLi.classList.add("button-row");
@@ -705,17 +720,25 @@ class Toolbar {
             focusHandlerMap.set(btn, focusHandler); // Store for cleanup
         });
 
-        // Auto-focus the Confirm button when modal opens
+        // Auto-focus the name input when modal opens
         setTimeout(() => {
-            confirmationButton.focus();
-            confirmationButton.classList.add("modal-btn-focused");
+            nameInput.focus();
         }, 150);
+
+        // Allow pressing Enter in the name input to confirm
+        nameInput.addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                confirmationButton.click();
+            }
+        });
 
         // Setup onclick handlers with proper cleanup on close
         confirmationButton.onclick = () => {
             cleanupModalListeners();
             modalContainer.style.display = "none";
-            onclick(this.activity);
+            const projectName = nameInput.value.trim() || _("My Project");
+            onclick(this.activity, projectName);
         };
 
         cancelButton.onclick = () => {

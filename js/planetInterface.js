@@ -184,11 +184,26 @@ class PlanetInterface {
 
         /**
          * Initializes a new project with the provided name or a default name.
+         * Ensures the project name is unique by appending a numeric suffix if necessary.
          * Clears the canvas, resets project data, and refreshes the canvas.
          * @param {string} [name] - The name of the new project.
          */
         this.initialiseNewProject = name => {
-            this.planet.ProjectStorage.initialiseNewProject(name);
+            name = name || this.planet.ProjectStorage.defaultProjectName;
+            let finalName = name;
+            let counter = 1;
+
+            if (this.planet && this.planet.ProjectStorage && this.planet.ProjectStorage.data) {
+                const projects = this.planet.ProjectStorage.data.Projects || {};
+                const existingNames = Object.values(projects).map(p => p.ProjectName);
+
+                while (existingNames.includes(finalName)) {
+                    counter++;
+                    finalName = name + " " + "(" + counter + ")";
+                }
+            }
+
+            this.planet.ProjectStorage.initialiseNewProject(finalName);
             this.activity.sendAllToTrash();
             this.activity.refreshCanvas();
             this.activity.blocks.trashStacks = [];
