@@ -1605,33 +1605,50 @@ class Activity {
             modal.classList.add("modalBox");
             modal.id = "clear-confirm";
             const title = document.createElement("h2");
-            title.textContent = _("Clear Workspace");
+            title.textContent = _("Clear Options");
             title.classList.add("modal-title");
             title.style.color = platformColor.headingColor;
 
             modal.appendChild(title);
             const message = document.createElement("p");
-            message.textContent = _("Are you sure you want to clear the workspace?");
+            message.textContent = _("What would you like to clear?");
             message.classList.add("modal-message");
             modal.appendChild(message);
 
             const buttonContainer = document.createElement("div");
             buttonContainer.classList.add("clear-button-container");
+            buttonContainer.style.display = "flex";
+            buttonContainer.style.justifyContent = "center";
+            buttonContainer.style.gap = "10px";
 
-            const confirmBtn = document.createElement("button");
-            confirmBtn.classList.add("confirm-button");
-            confirmBtn.textContent = _("Confirm");
-            confirmBtn.style.backgroundColor = platformColor.blueButton;
-            confirmBtn.style.color = platformColor.blueButtonText;
-            confirmBtn.style.border = "none";
-            confirmBtn.style.borderRadius = "4px";
-            confirmBtn.style.padding = "8px 16px";
-            confirmBtn.style.fontWeight = "bold";
-            confirmBtn.style.cursor = "pointer";
-            confirmBtn.style.marginRight = "16px";
-            this.addEventListener(confirmBtn, "click", () => {
+            const clearCanvasBtn = document.createElement("button");
+            clearCanvasBtn.classList.add("confirm-button");
+            clearCanvasBtn.textContent = _("Clear Canvas");
+            clearCanvasBtn.style.backgroundColor = platformColor.blueButton;
+            clearCanvasBtn.style.color = platformColor.blueButtonText;
+            clearCanvasBtn.style.border = "none";
+            clearCanvasBtn.style.borderRadius = "4px";
+            clearCanvasBtn.style.padding = "8px 16px";
+            clearCanvasBtn.style.fontWeight = "bold";
+            clearCanvasBtn.style.cursor = "pointer";
+            this.addEventListener(clearCanvasBtn, "click", () => {
                 document.body.removeChild(modal);
-                clearCanvasAction();
+                clearCanvasAction(false);
+            });
+
+            const clearAllBtn = document.createElement("button");
+            clearAllBtn.classList.add("confirm-button");
+            clearAllBtn.textContent = _("Clear All");
+            clearAllBtn.style.backgroundColor = platformColor.blueButton;
+            clearAllBtn.style.color = platformColor.blueButtonText;
+            clearAllBtn.style.border = "none";
+            clearAllBtn.style.borderRadius = "4px";
+            clearAllBtn.style.padding = "8px 16px";
+            clearAllBtn.style.fontWeight = "bold";
+            clearAllBtn.style.cursor = "pointer";
+            this.addEventListener(clearAllBtn, "click", () => {
+                document.body.removeChild(modal);
+                clearCanvasAction(true);
             });
 
             const cancelBtn = document.createElement("button");
@@ -1648,14 +1665,15 @@ class Activity {
                 document.body.removeChild(modal);
             });
 
-            buttonContainer.appendChild(confirmBtn);
+            buttonContainer.appendChild(clearCanvasBtn);
+            buttonContainer.appendChild(clearAllBtn);
             buttonContainer.appendChild(cancelBtn);
             modal.appendChild(buttonContainer);
             document.body.appendChild(modal);
         };
 
-        this._allClear = (noErase, skipConfirmation = false) => {
-            const clearCanvasAction = () => {
+        this._allClear = (noErase, skipConfirmation = false, clearBlocks = false) => {
+            const clearCanvasAction = clearBlocks => {
                 this.blocks.activeBlock = null;
                 hideDOMLabel();
 
@@ -1712,10 +1730,28 @@ class Activity {
                 if (this.cleanupIdleWatcher) {
                     this.cleanupIdleWatcher();
                 }
+
+                if (clearBlocks) {
+                    // Temporarily override DATAOBJS to only contain a start block.
+                    const oldData = DATAOBJS;
+                    /* eslint-disable no-global-assign */
+                    DATAOBJS = [[0, "start", screen.width / 2 + 28, 100, [null, null, null]]];
+                    /* eslint-enable no-global-assign */
+
+                    // Clear all blocks and replace with the minimal DATAOBJS.
+                    // skipClear=true prevents sendAllToTrash from calling
+                    // _allClear again (which would recurse).
+                    this.sendAllToTrash(true, false, true, true);
+
+                    // Restore DATAOBJS for future "New project" calls.
+                    /* eslint-disable no-global-assign */
+                    DATAOBJS = oldData;
+                    /* eslint-enable no-global-assign */
+                }
             };
 
             if (skipConfirmation) {
-                clearCanvasAction();
+                clearCanvasAction(clearBlocks);
             } else {
                 renderClearConfirmation(clearCanvasAction);
             }
@@ -4769,7 +4805,12 @@ class Activity {
          * @param {boolean} doNotSave     {if true discards any changes to project}
          * @param {boolean} closeAllWidgets  {if true close all open widgets}
          */
-        this.sendAllToTrash = (addStartBlock, doNotSave, closeAllWidgets = true) => {
+        this.sendAllToTrash = (
+            addStartBlock,
+            doNotSave,
+            closeAllWidgets = true,
+            skipClear = false
+        ) => {
             // Return to home position after loading new blocks.
             this.blocksContainer.x = 0;
             this.blocksContainer.y = 0;
@@ -4828,7 +4869,9 @@ class Activity {
 
             if (addStartBlock) {
                 this.blocks.loadNewBlocks(DATAOBJS);
-                this._allClear(false);
+                if (!skipClear) {
+                    this._allClear(false, true);
+                }
             } else if (!doNotSave) {
                 // Overwrite session data too.
                 this.saveLocally();
