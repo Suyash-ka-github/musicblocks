@@ -1681,7 +1681,7 @@ class Logo {
                 } else {
                     nextFlow = logo.blockList[blk].connections[0];
                     if (
-                        nextFlow != null &&
+                        nextFlow !== null &&
                         (logo.blockList[nextFlow].name === "action" ||
                             logo.blockList[nextFlow].name === "backward")
                     ) {
@@ -1721,8 +1721,10 @@ class Logo {
         let childFlowCount = 0;
         const actionArgs = [];
 
-        // Highlight only the current executing block
-        if (logo.activity.blocks.visible) {
+        const currentBlock = logo.blockList[blk];
+
+        // Highlight only the current executing block (skip disabled blocks).
+        if (logo.activity.blocks.visible && !currentBlock.disabled) {
             if (!tur.singer.suppressOutput && tur.singer.justCounting.length === 0) {
                 // Unhighlight any previously highlighted block
                 if (
@@ -1741,8 +1743,7 @@ class Logo {
             }
         }
 
-        const currentBlock = logo.blockList[blk];
-        if (!currentBlock.isArgBlock()) {
+        if (!currentBlock.disabled && !currentBlock.isArgBlock()) {
             let res = null;
             // Is it a plugin?
             if (currentBlock.name in logo.evalFlowDict) {
@@ -1782,7 +1783,7 @@ class Logo {
                     return ret;
                 }
             }
-        } else {
+        } else if (!currentBlock.disabled) {
             if (
                 // If it's an arg block, print its value.
                 currentBlock.isArgBlock() ||
