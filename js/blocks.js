@@ -1018,7 +1018,7 @@ class Blocks {
 
             if (this._deferCheckBoundsCount === 0 && this._checkBoundsPending) {
                 this._checkBoundsPending = false;
-                this.checkBounds();
+                this.scheduleCheckBounds();
             }
         };
 
@@ -2539,7 +2539,7 @@ class Blocks {
                 if (this._deferCheckBoundsCount > 0) {
                     this._checkBoundsPending = true;
                 } else {
-                    this.checkBounds();
+                    this.scheduleCheckBounds();
                 }
             } else {
                 console.debug("No container yet for block " + myBlock.name);
@@ -2565,7 +2565,7 @@ class Blocks {
                 if (this._deferCheckBoundsCount > 0) {
                     this._checkBoundsPending = true;
                 } else {
-                    this.checkBounds();
+                    this.scheduleCheckBounds();
                 }
             } else {
                 console.debug("No container yet for block " + myBlock.name);
